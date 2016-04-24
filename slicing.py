@@ -3,6 +3,7 @@
 import math
 import sys
 import string
+import copy
 
 #printerbed size: 500mm side cube
 
@@ -58,6 +59,7 @@ def fileToTriangles(filename):
         counter = 0
         triangles = list()
         triangle = Triangle(p0_=None, p1_=None, p2_=None, norm_=None)
+
         for line in f:
             l_ = line.split(" ")
             l = [value for value in l_ if value != '']
@@ -80,8 +82,14 @@ def fileToTriangles(filename):
                 counter+=1
             elif counter == 4:
                 triangle.p2 = Point(float(l[1]), float(l[2]), float(l[3]))
-                triangles.append(triangle)
+                print("Triangle: "+triangle.p0.toString()+" "+triangle.p1.toString()+" "+triangle.p2.toString())
+                triangles.insert(0,Triangle(Point(x_=triangle.p0.x, y_=triangle.p0.y, z_=triangle.p0.z), Point(x_=triangle.p1.x, y_=triangle.p1.y, z_=triangle.p1.z), Point(x_=triangle.p2.x, y_=triangle.p2.y, z_=triangle.p2.z), Point(x_=triangle.norm.x, y_=triangle.norm.y, z_=triangle.norm.z)))
+                #triangle = Triangle(p0_=None, p1_=None, p2_=None, norm_=None)
                 counter += 1
+        print("\n")
+        for tri in triangles:
+            print("Triangle: "+triangle.p0.toString()+" "+triangle.p1.toString()+" "+triangle.p2.toString())
+        
         return triangles
          
 # given a line segment and a plane,
@@ -101,7 +109,9 @@ def intersectSlice(line, plane):
             testZ = line.p0.z+t*slope.z
             if testZ <= max(line.p0.z, line.p1.z) and testZ >= min(line.p0.z, line.p1.z):
                 testP = Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
-                
+                #print("line: "+line.p0.toString()+" "+line.p1.toString()+"\nIntersections: "+testP.toString())
+                return testP
+
             else: 
                 return None
         else:
@@ -309,7 +319,7 @@ def infill(perimeter,percent):
                 infill.append(newLine)
 
     for l in infill:
-        print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+"), "+str(l.p0.z)+","+str(l.p1.z))
+        print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
 
 
 def main():
