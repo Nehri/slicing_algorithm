@@ -18,6 +18,9 @@ class Point:
     def normalize(self):
         return math.sqrt(self.x**2 + self.y**2 + self.z**2)
 
+    def toString(self):
+        return "("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
+
 
 class Line:
     def __init__(self, p0_, p1_):
@@ -92,12 +95,13 @@ def intersectSlice(line, plane):
         return None
     else:
         slope = Point(x_=line.p1.x-line.p0.x, y_=line.p1.y-line.p0.y, z_=line.p1.z-line.p0.z)
-        t = float(plane-line.p0.z)/float(slope.z-line.p0.z)
+        t = float(plane-line.p0.z)/float(slope.z)
 
         if t >= 0 and t <= 1:
             testZ = line.p0.z+t*slope.z
             if testZ <= max(line.p0.z, line.p1.z) and testZ >= min(line.p0.z, line.p1.z):
-                return Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
+                testP = Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
+                
             else: 
                 return None
         else:
@@ -283,7 +287,7 @@ def infill(perimeter,percent):
     for x in range(int(linesPerSide)):
         
         #start with full line
-        fullLine = Line(Point(x*gap,0,Z),Point(x*gap,bedWidth,Z))
+        fullLine = Line(Point(x_=x*gap,y_=0,z_=Z),Point(x_=x*gap,y_=bedWidth,z_=Z))
         inters = []
 
         #find intersections
@@ -305,7 +309,7 @@ def infill(perimeter,percent):
                 infill.append(newLine)
 
     for l in infill:
-        print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
+        print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+"), "+str(l.p0.z)+","+str(l.p1.z))
 
 
 def main():
@@ -315,7 +319,7 @@ def main():
     triangles = fileToTriangles(filename)
 
     slices = separateSlices(triangles, layerThickness)
-    
+
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
 
