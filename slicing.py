@@ -308,9 +308,79 @@ def infill(perimeter,percent):
             if not overlap:
                 infill.append(newLine)
 
-    for l in infill:
-        print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+"), "+str(l.p0.z)+","+str(l.p1.z))
+    # for l in infill:
+        # print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+"), "+str(l.p0.z)+","+str(l.p1.z))
 
+    return infill
+
+
+# given a list of slices with the list of line segments
+# to draw per slice, as a tuple with if the slice is a
+# bottom or top, and a filename,
+# write the G code to the given file 
+def writeGcode(slices,filename):
+
+    extrudeRate = 0.05
+    f = open(filename[:-3] + "gcode",'w')
+
+    #preamble
+    f.write(";Start GCode\n")
+    f.write("M109 S210.000000\n")
+    f.write("G28 X0 Y0 Z0\n")
+    f.write("G92 E0\n")
+    f.write("G29\n")
+
+    layer = 1;
+    for s in slices:
+
+        f.write(";Layer "+str(layer)+" of "+str(len(slices))+"\n")
+
+        #fan
+        if (layer == 2):
+            f.write("M106 S127\n")
+        if (layer == 3):
+            f.write("M106 S255\n")
+        
+        f.write(";perimeter\n")
+        for l in s.perimeter:
+            #move to start of line
+            f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
+            #move to end while extruding
+            dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
+            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+"E "+str(dist*extrudeRate)+"\n")
+
+        if len(s.support) > 0:
+            f.write(";support\n")
+        for l in s.support:
+            #move to start of line
+            f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
+            #move to end while extruding
+            dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
+            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+"E "+str(dist*extrudeRate)+"\n")
+
+        if len(s.infill) > 0:
+            f.write(";infill\n")
+        for l in s.infill:
+            #move to start of line
+            f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
+            #move to end while extruding
+            dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
+            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+"E "+str(dist*extrudeRate)+"\n")
+
+        
+        layer+=1
+
+
+    #postamble
+    f.write(";End GCode\n")
+    f.write("M104 S0\n")
+    f.write("M140 S0\n")
+    f.write("G91\n")
+    f.write("G1 E-1 F300\n")
+    f.write("G1 Z+0.5 E-5 X-20 Y-20 F2v700\n")
+    f.write("G28 X0 Y0\n")
+    f.write("M84\n")
+    f.write("G90\n")
 
 def main():
     filename = sys.argv[1]
@@ -323,6 +393,7 @@ def main():
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
 
+    writeGcode(slices,filename)
     
 
 if __name__ == "__main__":
