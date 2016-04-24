@@ -284,7 +284,7 @@ def infill(perimeter,percent):
         inters.sort(key=lambda point: point.x)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
         if len(inters) % 2 == 0:
-            print("Perimeter not manifold\n")
+            print("Perimeter not manifold")
             for line in perimeter:
                 print(line.toString())
             print(" ")
