@@ -342,6 +342,7 @@ def writeGcode(slices,filename):
     f.write("G29\n")
 
     layer = 1;
+    E = 0;
     for s in slices:
 
         f.write(";Layer "+str(layer)+" of "+str(len(slices))+"\n")
@@ -358,7 +359,8 @@ def writeGcode(slices,filename):
             f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
-            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+"E "+str(dist*extrudeRate)+"\n")
+            E += dist*extrudeRate
+            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+" E"+str(E)+"\n")
 
         if len(s.support) > 0:
             f.write(";support\n")
@@ -367,7 +369,9 @@ def writeGcode(slices,filename):
             f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
-            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+"E "+str(dist*extrudeRate)+"\n")
+            E += dist*extrudeRate
+            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+" E"+str(E)+"\n")
+
 
         if len(s.infill) > 0:
             f.write(";infill\n")
@@ -376,7 +380,8 @@ def writeGcode(slices,filename):
             f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
-            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+"E "+str(dist*extrudeRate)+"\n")
+            E += dist*extrudeRate
+            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+" E"+str(E)+"\n")
 
         
         layer+=1
