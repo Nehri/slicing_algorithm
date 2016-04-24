@@ -5,7 +5,9 @@ import sys
 import string
 import copy
 
-#printerbed size: 500mm side cube
+#printer specific constants, should be suplied as args
+bedWidth = 500.0#mm
+extrudeWidth = 1.0#mm
 
 class Point:
     def __init__(self, x_, y_, z_):
@@ -28,6 +30,9 @@ class Line:
         self.p0 = p0_
         self.p1 = p1_
 
+    def toString(self):
+        return "("+self.p0.toString()+","+self.p1.toString()+")"
+
 def lineEqual(L1,L2):
     if (((L1.p0.x == L2.p0.x) and (L1.p0.y == L2.p0.y) and
         (L1.p1.x == L2.p1.x) and (L1.p1.y == L2.p1.y))
@@ -39,13 +44,14 @@ def lineEqual(L1,L2):
 
 class Triangle:
     def __init__(self, p0_, p1_, p2_, norm_):
-        self.p1 = p0_
-        self.p2 = p1_
-        self.p3 = p2_
+        self.p0 = p0_
+        self.p1 = p1_
+        self.p2 = p2_
         self.norm = norm_
 
 class Slice:
-    def __init__(self, perimeter_, isSurface_):
+    def __init__(self, zValue_, perimeter_, isSurface_):
+        self.zValue = zValue_
         self.perimeter = perimeter_
         self.isSurface = isSurface_
         self.support = list()
@@ -58,37 +64,34 @@ def fileToTriangles(filename):
         next(f)
         counter = 0
         triangles = list()
-        triangle = Triangle(p0_=None, p1_=None, p2_=None, norm_=None)
-
+        points = list()
         for line in f:
             l_ = line.split(" ")
             l = [value for value in l_ if value != '']
-            if counter in [1,5,6]:
-                if counter == 6:
-                    counter = 0
-                else:
-                    counter += 1
+            if counter == 6:
+                counter = 0
                 continue
             elif counter == 0:
                 if l[0] == 'endsolid':
                     break
-                triangle.norm=Point(float(l[2]), float(l[3]), float(l[4][:-1]))
-                counter += 1
+                points.insert(0, Point(float(l[2]), float(l[3]), float(l[4][:-1])))
             elif counter == 2:
-                triangle.p0 = Point(float(l[1]), float(l[2]), float(l[3]))
-                counter+=1
+                points.insert(0, Point(float(l[1]), float(l[2]), float(l[3])))
             elif counter == 3:
-                triangle.p1 = Point(float(l[1]), float(l[2]), float(l[3]))
-                counter+=1
+                points.insert(0, Point(float(l[1]), float(l[2]), float(l[3])))
             elif counter == 4:
-                triangle.p2 = Point(float(l[1]), float(l[2]), float(l[3]))
-                print("Triangle: "+triangle.p0.toString()+" "+triangle.p1.toString()+" "+triangle.p2.toString())
-                triangles.insert(0,Triangle(Point(x_=triangle.p0.x, y_=triangle.p0.y, z_=triangle.p0.z), Point(x_=triangle.p1.x, y_=triangle.p1.y, z_=triangle.p1.z), Point(x_=triangle.p2.x, y_=triangle.p2.y, z_=triangle.p2.z), Point(x_=triangle.norm.x, y_=triangle.norm.y, z_=triangle.norm.z)))
-                #triangle = Triangle(p0_=None, p1_=None, p2_=None, norm_=None)
-                counter += 1
+                points.insert(0, Point(float(l[1]), float(l[2]), float(l[3])))
+            counter += 1
+
+        while points:
+            triangles.insert(0, Triangle(points[2], points[1], points[0], points[3]))
+            points = points[4:]
+        '''
         print("\n")
         for tri in triangles:
-            print("Triangle: "+triangle.p0.toString()+" "+triangle.p1.toString()+" "+triangle.p2.toString())
+            print("Triangle: "+tri.p0.toString()+" "+tri.p1.toString()+" "+tri.p2.toString())
+            print(id(tri))
+        '''
         
         return triangles
          
@@ -109,8 +112,8 @@ def intersectSlice(line, plane):
             testZ = line.p0.z+t*slope.z
             if testZ <= max(line.p0.z, line.p1.z) and testZ >= min(line.p0.z, line.p1.z):
                 testP = Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
-                #print("line: "+line.p0.toString()+" "+line.p1.toString()+"\nIntersections: "+testP.toString())
-                return testP
+                print("intersect: "+testP.toString())
+                return Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
 
             else: 
                 return None
@@ -206,7 +209,7 @@ def separateSlices(triangles, layerThickness):
                 currentSegment.append(segment2)
                 currentSegment.append(segment3)
          
-        segments.append(Slice(perimeter_=currentSegment,isSurface_=currentSegmentSurface))
+        segments.append(Slice(zValue_=s, perimeter_=currentSegment,isSurface_=currentSegmentSurface))
 
     return segments
 
@@ -260,10 +263,6 @@ def infill(perimeter,percent):
         return []
     Z = perimeter[0].p0.z #should be the same across all lines
 
-    #printer specific constants, should be suplied as args
-    bedWidth = 500.0#mm
-    extrudeWidth = 1.0#mm
-
     linesPerSide = round((bedWidth*percent)/(extrudeWidth*2))
     gap = bedWidth/linesPerSide
     infill = []
@@ -283,7 +282,12 @@ def infill(perimeter,percent):
 
         #sort by x to get matching pairs for internal lines
         inters.sort(key=lambda point: point.x)
-        assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
+        #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
+        if len(inters) % 2 == 0:
+            print("Perimeter not manifold\n")
+            for line in perimeter:
+                print(line.toString())
+            print(" ")
         for i in range(int(round(len(inters)/2))):
             overlap = False;
             newLine = Line(inters[i*2],inters[i*2+1])
@@ -308,7 +312,12 @@ def infill(perimeter,percent):
 
         #sort by y to get matching pairs for internal lines
         inters.sort(key=lambda point: point.y)
-        assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
+        #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
+        if len(inters) % 2 == 0:
+            print("Perimeter not manifold\n")
+            for line in perimeter:
+                print(line.toString())
+            print(" ")
         for i in range(int(round(len(inters)/2))):
             overlap = False;
             newLine = Line(inters[i*2],inters[i*2+1])
@@ -323,6 +332,129 @@ def infill(perimeter,percent):
         print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
 
     return infill
+
+# given a slice with a list of line segments,
+# returns a new slice free of duplicate and interior line segments
+'''
+def cleanPerimeter(s):
+    for line in s:
+        #if L is a duplicate and if every triangle containing L is on the slice, remove all L in base
+    #need to order perimeter such that it is manifold
+    return Slice(zValue_=s.zValue, perimeter_=list(set(s.perimeter)), isSurface_=s.isSurface)
+'''
+# pseudocode for computing brim of a single convex polyhedron base
+# takes a listof(line segments) which are the base (bottom layer),
+# a number of outlines, and an initial offset
+# will also generate a skirt if offset is greater than 1 and number of outlines = 1
+def brim(base, numOutlines, offset):
+    # compute centroid of polygonal manifold
+    cx = 1
+    cy = 1
+    area = 1
+    for line in base:
+        cx = cx * (line.p0.x + line.p1.x)
+        cy = cy * (line.p0.y + line.p1.y)
+        area *= (line.p0.x * line.p1.y - line.p1.x * line.p0.y)
+    area = area / 2
+    cx = cx / (6 * area)
+    cy = cy / (6 * area)
+
+    # generate outlines
+    brimlines = list()
+    for i in range(1, numOutlines+1):
+        for line in base:
+            line_ = Line(Point(line.p0.x, line.p0.y, line.p0.z), Point(line.p1.x, line.p1.y, line.p1.z))
+
+            if line.p0.x > cx:
+                line_.p0.x += offset + extrudeWidth * i
+            else:
+                line_.p0.x -= offset + extrudeWidth * i
+            if line.p0.y > cy:
+                line_.p0.y += offset + extrudeWidth * i
+            else:
+                line_.p0.y -= offset + extrudeWidth * i
+            if line.p1.x > cx:
+                line_.p1.x += offset + extrudeWidth * i
+            else:
+                line_.p1.x -= offset + extrudeWidth * i
+            if line.p1.y > cy:
+                line_.p1.y += offset + extrudeWidth * i
+            else:
+                line_p1.y -= offset + extrudeWidth * i
+            brimlines.append(line_)
+    
+    return brimlines
+
+
+# pseudocode for computing a basic rectangular raft
+# takes number of layers, an offset (how far raft extends from object), and an infill percentage
+# and a listof(listof(line segments)) representing the object
+# NOTE: raft goes UNDERNEATH object, all object / infill / support layers must be shifted up by
+# height of raft (the brim, if used, is the same layer as raft and does not need to be elevated)
+def raft(slices, numLayers, offset, infill, layerThickness):
+    # compute enclosing rectangle on object
+    x = 0
+    y = 0
+    x_ = 0
+    y_ = 0
+    for s in slices:
+        for line in s.perimeter:
+            if line.p0.x > x or line.p1.x > x:
+                x = line.p0.x if line.p0.x > line.p1.x else line.p1.x
+            if line.p0.x < x_ or line.p1.x < x_:
+                x_ = line.p0.x if line.p0.x < line.p1.x else line.p1.x
+            if line.p0.y > y or line.p1.y > y:
+                y = line.p0.y if line.p0.y > line.p1.y else line.p1.y
+            if line.p0.y < y_ or line.p1.y < y_:
+                y_ = line.p0.y if line.p0.y < line.p1.y else line.p1.y
+
+    x += offset
+    y += offset
+    x_ -= offset
+    y_ -= offset
+    # compute number of lines and gaps
+    xlen = x - x_
+    ylen = y - y_
+    area  =  xlen * ylen
+    totalArea = area * infill
+    xlines = floor(totalArea / (extrudeWidth * xlen))
+    xgap = (ylen - extrudeWidth * xlines) / xlines
+    ylines = floor(totalArea / (extrudeWidth * ylen))
+    ygap = (xlen - extrudeWidth * ylines) / ylines
+    # generate layers
+    i = 0
+    z = slices[0].zValue
+    allSegments = list()
+    lines = list()
+    switch = True
+    while i < numLayers:
+        if numLayers - i <= 1:
+            lines_ = list(Line(p0_=Point(x_,y_,z),p1_=Point(x_,y,z)), Line(p0_=Point(x_,y,z),p1_=Point(x,y,z)), Line(p0_=Point(x,y,z),p1_=Point(x,y_,z)), Line(p0_=Point(x,y_,z),p1_=Point(x_,y_,z)))
+            lines += lines_
+            lines += infill(lines_, 1.0)
+        # lines and its infill to create a solid surface
+
+        elif i % 2 == 1:
+            for k in range(0, xlines):
+                if switch == True:
+                    lines += list(Line(p0_=Point(x_,y_+ygap * k,z),p1_=Point(x,y_+ygap * k,z)), Line(p0_=Point(x,y_+ygap * k,z),p1_=Point(x,y_+ygap*(k+1),z)))
+                    switch = False
+                else:
+                    lines += list(Line(p0_=Point(x,y_+ygap * k,z),p1_=Point(x_,y_+ygap* k,z)), Line(p0_=Point(x_,y_+ygap *k,z), p1_=Point(x_,y_+ygap * (k+1), z)))
+                    switch = True
+            
+        elif i % 2 == 0:
+            for k in range(0,xlines):
+                if switch == True:
+                    lines += list(Line(p0_=Point(x-xgap * k, y_,z),p1_=Point(x-xgap * k, y, z)), Line(p0_=Point(x-xgap * k,y,z),p1_=Point(x-xgap * (k-1),y,z)))
+                    switch = False
+        else:
+            lines  += list(Line(p0_=Point(x-xgap * k,y,z),p1_=Point(x-xgap * k,y_,z)), Line(p0_=Point(x-xgap * k,y_,z),p1_=Point(x-xgap * (k+1),y_,z))) 
+            switch = True
+        allSegments.append(lines)
+        switch = True
+        z += layerThickness
+    return allSegments
 
 
 # given a list of slices with the list of line segments
@@ -400,123 +532,19 @@ def main():
     triangles = fileToTriangles(filename)
 
     slices = separateSlices(triangles, layerThickness)
-
+    '''
+    slices = list()
+    for s in slices:
+        slices += list(cleanPerimeter(s))
+    '''
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
-
+    
     writeGcode(slices,filename)
     
 
 if __name__ == "__main__":
     main()
-# pseudocode for computing brim of a single convex polyhedron base
-# takes a listof(line segments) which are the base (bottom layer),
-# a number of outlines, and an initial offset
-# will also generate a skirt if offset is greater than 1 and number of outlines = 1
-'''
-def brim(base, outlines, offset):
-    # remove interior lines in manifold
-    for every line segment L in base
-        if L is a duplicate, remove all L in base
-    # compute centroid of polygonal manifold
-    Cx = 1,Cy = 1, A = 1
-    for every L in base:
-        Cx = Cx * (L.p0.x + L.p1.x)
-        Cy = Cy * (L.p0.y + L.p1.y)
-        A = A * (L.p0.x * L.p1.y - L.p1.x * L.p0.y)
-    A = A / 2
-    Cx = Cx / (6 * A)
-    Cy = Cy / (6 * A)
-
-    # generate outlines
-    brimlines = None
-    for i from 1 to outlines:
-        for L in base:
-            L’ = L
-            if L.p0.x > Cx:
-                L’.p0.x += offset + extrudeWidth * i
-            else:
-                L’.p0.x -= offset + extrudeWidth * i
-    if L.p0.y > Cy:
-        L’.p0.y += offset + extrudeWidth * i
-    else:
-        L’.p0.y -= offset + extrudeWidth * i
-    if L.p1.x > Cx:
-        L’.p1.x += offset + extrudeWidth * i
-    else:
-        L’.p1.x -= offset + extrudeWidth * i
-    if L.p1.y > Cy:
-        L’.p1.y += offset + extrudeWidth * i
-    else:
-        L’p1.y -= offset + extrudeWidth * i
-    brimlines = brimlines + {L’}
-        return brimlines
-'''
 
 
-# pseudocode for computing a basic rectangular raft
-# takes number of layers, an offset (how far raft extends from object), and an infill percentage
-# and a listof(listof(line segments)) representing the object
-# NOTE: raft goes UNDERNEATH object, all object / infill / support layers must be shifted up by
-# height of raft (the brim, if used, is the same layer as raft and does not need to be elevated)
-'''
-def raft(layers, layernum, offset, infill):
-	# compute enclosing rectangle on object
-	x = 0, y = 0, _x = 0, _y = 0
-	for L in layers
-		for s in L
-			if s.p0.x > x or s.p1.x > x:
-				x = s.p0.x if s.p0.x > s.p1.x else s.p1.x
-			if s.p0.x < _x or s.p1.x < _x:
-				_x = s.p0.x if s.p0.x < s.p1.x else s.p1.x
-			if s.p0.y > y or s.p1.y > y:
-				y = s.p0.y if s.p0.y > s.p1.y else s.p1.y
-			if s.p0.y < _y or s.p1.y < _y:
-				_y = s.p0.y if s.p0.y < s.p1.y else s.p1.y
-	x += offset, y += offset, _x -= offset, _y -= offset
-	# compute number of lines and gaps
-	xlen = x - _x, ylen = y - _y, A  =  xlen * ylen, O = A * infill
-	xlines = floor(O / (extrudeWidth * xlen))
-	xgap = (ylen - extrudeWidth * xlines) / xlines
-	ylines = floor(O / (extrudeWidth * ylen))
-	ygap = (xlen - extrudeWidth * ylines) / ylines
-	# generate layers
-	i = 0, z = least z of layers, R = listof(listof(line segments)), L = listof(line segments)
-	switch = True
-	while i < layers:
-		if layers - i <= 1
-			L = {	ls0(p0=(_x,_y,z),p1=(_x,y,z)) ,
-				ls1(p0=(_x,y,z),p1=(x,y,z)) ,
-				ls2(p0=(x,y,z),p1=(x,_y,z)) ,
-				ls3(p0=(x,_y,z),p1=(_x,_y,z) }
-		# at this point should call Aaron’s infill function at 100%  on L then combine
-		# L and its infill to create a solid surface
-		elif i % 2 == 1
-			for k from 0 to xlines - 1
-				if switch == True:
-L  = {	ls0=(p0=(_x,_y+ygap * k,z),p1=(x,_y+ygap * k,z)) , 
-ls1=(p0=(x,_y+ygap * k,z),p1=(x,_y+ygap*(k+1),z)) }
-switch = False
-				else:
-					L = {	ls0=(p0=(x,_y+ygap * k,z),p1=(_x,_y+ygap* k,z)) ,
-						ls1=(p0=(_x,_y+ygap *k,z)p1=(_x,_y+ygap * (k+1)))
-					}
-					switch = True
-			
-		elif i % 2 == 0
-			for k from 0 to xlines -1
-				if switch == True:
-					L = {	ls0=(p0=(x-xgap * k, _y,z),p1=(x-xgap * k, y, z)) ,
-ls1=(p0=(x-xgap * k,y,z),p1=(x-xgap * (k-1),y,z))
-}
-					switch = False
-else:
-L = {	ls0=(p0=(x-xgap * k,y,z),p1=(x-xgap * k,_y,z)) ,
-	ls1=(p0=(x-xgap * k,_y,z),p1=(x-xgap * (k+1),_y,z)) 
-}
-switch = True
-		R += {L}
-switch = True
-		z += sliceThickness
-	return R
-'''
+
