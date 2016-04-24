@@ -370,3 +370,71 @@ def brim(base, outlines, offset):
     brimlines = brimlines + {L’}
         return brimlines
 '''
+
+
+# pseudocode for computing a basic rectangular raft
+# takes number of layers, an offset (how far raft extends from object), and an infill percentage
+# and a listof(listof(line segments)) representing the object
+# NOTE: raft goes UNDERNEATH object, all object / infill / support layers must be shifted up by
+# height of raft (the brim, if used, is the same layer as raft and does not need to be elevated)
+'''
+def raft(layers, layernum, offset, infill):
+	# compute enclosing rectangle on object
+	x = 0, y = 0, _x = 0, _y = 0
+	for L in layers
+		for s in L
+			if s.p0.x > x or s.p1.x > x:
+				x = s.p0.x if s.p0.x > s.p1.x else s.p1.x
+			if s.p0.x < _x or s.p1.x < _x:
+				_x = s.p0.x if s.p0.x < s.p1.x else s.p1.x
+			if s.p0.y > y or s.p1.y > y:
+				y = s.p0.y if s.p0.y > s.p1.y else s.p1.y
+			if s.p0.y < _y or s.p1.y < _y:
+				_y = s.p0.y if s.p0.y < s.p1.y else s.p1.y
+	x += offset, y += offset, _x -= offset, _y -= offset
+	# compute number of lines and gaps
+	xlen = x - _x, ylen = y - _y, A  =  xlen * ylen, O = A * infill
+	xlines = floor(O / (extrudeWidth * xlen))
+	xgap = (ylen - extrudeWidth * xlines) / xlines
+	ylines = floor(O / (extrudeWidth * ylen))
+	ygap = (xlen - extrudeWidth * ylines) / ylines
+	# generate layers
+	i = 0, z = least z of layers, R = listof(listof(line segments)), L = listof(line segments)
+	switch = True
+	while i < layers:
+		if layers - i <= 1
+			L = {	ls0(p0=(_x,_y,z),p1=(_x,y,z)) ,
+				ls1(p0=(_x,y,z),p1=(x,y,z)) ,
+				ls2(p0=(x,y,z),p1=(x,_y,z)) ,
+				ls3(p0=(x,_y,z),p1=(_x,_y,z) }
+		# at this point should call Aaron’s infill function at 100%  on L then combine
+		# L and its infill to create a solid surface
+		elif i % 2 == 1
+			for k from 0 to xlines - 1
+				if switch == True:
+L  = {	ls0=(p0=(_x,_y+ygap * k,z),p1=(x,_y+ygap * k,z)) , 
+ls1=(p0=(x,_y+ygap * k,z),p1=(x,_y+ygap*(k+1),z)) }
+switch = False
+				else:
+					L = {	ls0=(p0=(x,_y+ygap * k,z),p1=(_x,_y+ygap* k,z)) ,
+						ls1=(p0=(_x,_y+ygap *k,z)p1=(_x,_y+ygap * (k+1)))
+					}
+					switch = True
+			
+		elif i % 2 == 0
+			for k from 0 to xlines -1
+				if switch == True:
+					L = {	ls0=(p0=(x-xgap * k, _y,z),p1=(x-xgap * k, y, z)) ,
+ls1=(p0=(x-xgap * k,y,z),p1=(x-xgap * (k-1),y,z))
+}
+					switch = False
+else:
+L = {	ls0=(p0=(x-xgap * k,y,z),p1=(x-xgap * k,_y,z)) ,
+	ls1=(p0=(x-xgap * k,_y,z),p1=(x-xgap * (k+1),_y,z)) 
+}
+switch = True
+		R += {L}
+switch = True
+		z += sliceThickness
+	return R
+'''
