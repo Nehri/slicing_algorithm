@@ -8,6 +8,7 @@ import copy
 #printer specific constants, should be suplied as args
 bedWidth = 150.0#mm
 extrudeWidth = 1.0#mm
+delta = extrudeWidth/100.0 #delta for floating point comparison
 
 class Point:
     def __init__(self, x_, y_, z_):
@@ -226,11 +227,10 @@ def intersection(L1,L2):
     try:
         intersect = Point(xnum/xden,ynum/yden,L1.p0.z) 
 
-        d = 0.01 #delta for floating point comparison
-        if ((intersect.x >= min(x1,x2)-d) and (intersect.x <= max(x1,x2)+d) and
-            (intersect.y >= min(y1,y2)-d) and (intersect.y <= max(y1,y2)+d) and
-            (intersect.x >= min(x3,x4)-d) and (intersect.x <= max(x3,x4)+d) and
-            (intersect.y >= min(y3,y4)-d) and (intersect.y <= max(y3,y4)+d)):
+        if ((intersect.x >= min(x1,x2)-delta) and (intersect.x <= max(x1,x2)+delta) and
+            (intersect.y >= min(y1,y2)-delta) and (intersect.y <= max(y1,y2)+delta) and
+            (intersect.x >= min(x3,x4)-delta) and (intersect.x <= max(x3,x4)+delta) and
+            (intersect.y >= min(y3,y4)-delta) and (intersect.y <= max(y3,y4)+delta)):
             return intersect
         else:
             return None
