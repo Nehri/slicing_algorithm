@@ -29,7 +29,6 @@ class Point:
         else:
             return False
 
-
 def pointInLine(p, line):
     if p.x == line.p0.x and p.y == line.p0.y and p.z == line.p0.z:
         return True
@@ -212,9 +211,9 @@ def separateSlices(triangles, layerThickness):
             if s <= (bounds[0]+layerThickness) or s >= (bounds[1]-layerThickness):
                 currentSegmentSurface = True
 
-            if len(points) == 1:
-                currentSegment.append(Line(points[0], points[0]))
-            elif len(points) == 2:
+            #if len(points) == 1:
+                #currentSegment.append(Line(points[0], points[0]))
+            if len(points) == 2:
                 currentSegment.append(Line(points[0], points[1]))
             elif len(points) == 3:
                 segment1 = Line(points[0], points[1])
