@@ -320,11 +320,14 @@ def infill(perimeter,percent):
                 if not overlap:
                     infill.append(newLine)
 
+<<<<<<< HEAD
         # if len(infill) > 0:
         #     for l in infill:
         #         print(l.toString())
         #     print("")
 
+=======
+>>>>>>> 7be72fa41cce8c87142d9ddf3f5b663ed1f01324
     return infill
 
 
@@ -589,6 +592,7 @@ def main():
         for line in s.perimeter:
             print(str(s.zValue)+" "+line.toString())
     '''
+
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
     
