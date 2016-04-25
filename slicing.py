@@ -320,14 +320,6 @@ def infill(perimeter,percent):
                 if not overlap:
                     infill.append(newLine)
 
-<<<<<<< HEAD
-        # if len(infill) > 0:
-        #     for l in infill:
-        #         print(l.toString())
-        #     print("")
-
-=======
->>>>>>> 7be72fa41cce8c87142d9ddf3f5b663ed1f01324
     return infill
 
 
