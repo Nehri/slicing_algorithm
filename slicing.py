@@ -23,7 +23,20 @@ class Point:
 
     def toString(self):
         return "("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
+    def equals(self, p2):
+        if self.x == p2.x and self.y == p2.y and self.z == p2.z:
+            return True
+        else:
+            return False
 
+
+def pointInLine(p, line):
+    if p.x == line.p0.x and p.y == line.p0.y and p.z == line.p0.z:
+        return True
+    elif p.x == line.p1.x and p.y == line.p1.y and p.z == line.p1.z:
+        return True
+    else:
+        return False
 
 class Line:
     def __init__(self, p0_, p1_):
@@ -32,6 +45,16 @@ class Line:
 
     def toString(self):
         return "("+self.p0.toString()+","+self.p1.toString()+")"
+    def reverse(self):
+        x_ = self.p0.x
+        y_ = self.p0.y
+        z_ = self.p0.z
+        self.p0.x = self.p1.x
+        self.p0.y = self.p1.y
+        self.p0.z = self.p1.z
+        self.p1.x = x_
+        self.p1.y = y_
+        self.p1.z = z_
 
 def lineEqual(L1,L2):
     if (((L1.p0.x == L2.p0.x) and (L1.p0.y == L2.p0.y) and
@@ -86,13 +109,7 @@ def fileToTriangles(filename):
         while points:
             triangles.insert(0, Triangle(points[2], points[1], points[0], points[3]))
             points = points[4:]
-        '''
-        print("\n")
-        for tri in triangles:
-            print("Triangle: "+tri.p0.toString()+" "+tri.p1.toString()+" "+tri.p2.toString())
-            print(id(tri))
-        '''
-        
+
         return triangles
          
 # given a line segment and a plane,
@@ -333,15 +350,54 @@ def infill(perimeter,percent):
 
     return infill
 
+
+# given a list of line segments and a starting point,
+# returns the location of the next line that connects to the points,
+# or None if no point follows
+def findNextPoint(point, lines):
+    for i in range(0, len(lines)):
+        line = lines[i]
+        if pointInLine(point, line):
+            return i
+    return None
+
 # given a slice with a list of line segments,
-# returns a new slice free of duplicate and interior line segments
-'''
+# returns a new slice free of duplicate or interior line segments
+# and in order for optimized drawing
 def cleanPerimeter(s):
-    for line in s:
+    #for line in s:
         #if L is a duplicate and if every triangle containing L is on the slice, remove all L in base
+    i = 0
+    while i < len(setPerimeter):
+        j = i
+        while j < len(setPerimeter):
+            if lineEqual(setPerimeter[i],setPerimeter[j]):
+                setPerimeter.remove(setPerimeter[j])
+            else:
+                j+=1
+        i+=1
+
+    pathPerimeter = list()
+    if setPerimeter:
+        pathPerimeter.insert(0,setPerimeter[0])
+        setPerimeter = setPerimeter[1:]
+        k = 0
+        while setPerimeter:
+            loc = findNextPoint(pathPerimeter[k].p1, setPerimeter)
+            if not loc:
+                break
+            if pathPerimeter[k].p1.equals(setPerimeter[loc].p0):
+                pathPerimeter.insert(0,setPerimeter[loc])
+            else:
+                pathPerimeter.insert(0,setPerimeter[loc].reverse())
+            setPerimeter.remove(setPerimeter[loc])
+            j+=1
+
+    
     #need to order perimeter such that it is manifold
-    return Slice(zValue_=s.zValue, perimeter_=list(set(s.perimeter)), isSurface_=s.isSurface)
-'''
+    return Slice(zValue_=s.zValue, perimeter_=pathPerimeter, isSurface_=s.isSurface)
+
+
 # pseudocode for computing brim of a single convex polyhedron base
 # takes a listof(line segments) which are the base (bottom layer),
 # a number of outlines, and an initial offset
@@ -536,12 +592,11 @@ def main():
     supportPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
-    slices = separateSlices(triangles, layerThickness)
-    '''
+    slices_ = separateSlices(triangles, layerThickness)
     slices = list()
     for s in slices:
         slices += list(cleanPerimeter(s))
-    '''
+        
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
     
