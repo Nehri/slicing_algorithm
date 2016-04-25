@@ -161,8 +161,14 @@ def intersection(L1,L2):
     yden = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
 
     try:
-        intersect = Point(xnum/xden,ynum/yden,L1.p0.z)
-        return intersect
+        i = Point(xnum/xden,ynum/yden,L1.p0.z)
+        if ((i.x <= max(x1,x2)) and (i.x >= min(x1,x2)) and
+            (i.y <= max(y1,y2)) and (i.y >= min(y1,y2)) and
+            (i.x <= max(x3,x4)) and (i.x >= min(x3,x4)) and
+            (i.y <= max(y3,y4)) and (i.y >= min(y3,y4)) ):
+            return i
+        else:
+            return None
     except:
         return None
 
