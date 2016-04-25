@@ -287,7 +287,7 @@ def infill(perimeter,percent):
     for x in range(numLines):
         
         #start with full line
-        fullLine = Line(Point(x_=x*gap,y_=0,z_=Z),Point(x_=x*gap,y_=bedWidth,z_=Z))
+        fullLine = Line(Point((bedWidth/-2)+(x*gap),bedWidth/-2,Z),Point((bedWidth/-2)+(x*gap),bedWidth*2,Z))
         inters = []
 
         #find intersections
@@ -300,12 +300,15 @@ def infill(perimeter,percent):
         inters.sort(key=lambda point: point.y)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
         
-        if len(inters)%2 != 0:
-            print("Perimeter not manifold\n")
-            for line in perimeter:
-                print(line.toString())
-            print(" ")
-        
+        # if len(inters)%2 != 0:
+        #     print("Perimeter not manifold\n")
+        #     for line in perimeter:
+        #         print(line.toString())
+        #     print(" ")
+        #     for p in inters:
+        #         print(p.toString())
+        #     print(" ")
+            
         for i in range(len(inters)):
             if i%2 != 0:
                 overlap = False;
@@ -315,9 +318,6 @@ def infill(perimeter,percent):
                         overlap = True;
                 if not overlap:
                     infill.append(newLine)
-
-    # for l in infill:
-        # print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
 
     return infill
 
@@ -563,17 +563,11 @@ def main():
     supportPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
-    slices_ = separateSlices(triangles, layerThickness)
-    slices = list()
-    for s in slices_:
-        slices += [cleanPerimeter(s)]
-    '''
-    for s in slices:
-        for line in s.perimeter:
-            print(str(s.zValue)+" "+line.toString())
-    '''
+    slices = separateSlices(triangles, layerThickness)
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
+    for s in slices:
+        slices = [cleanPerimeter(s)]
     
     writeGcode(slices,filename)
     
