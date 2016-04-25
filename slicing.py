@@ -31,9 +31,9 @@ class Point:
             return False
 
 def pointInLine(p, line):
-    if p.x == line.p0.x and p.y == line.p0.y and p.z == line.p0.z:
+    if close(p.x,line.p0.x) and close(p.y,line.p0.y) and close(p.z,line.p0.z):
         return True
-    elif p.x == line.p1.x and p.y == line.p1.y and p.z == line.p1.z:
+    elif close(p.x,line.p1.x) and close(p.y,line.p1.y) and close(p.z,line.p1.z):
         return True
     else:
         return False
@@ -333,7 +333,7 @@ def cleanPerimeter(s):
             else:
                 j+=1
         i+=1
-
+    '''
     pathPerimeter = list()
     print("Perimetering")
     k = 0
@@ -360,7 +360,8 @@ def cleanPerimeter(s):
         if line.p0.equals(line.p1):
             pathPerimeter.remove(line)
     finalPerimeter = [value for value in pathPerimeter if value != None]
-
+    '''
+    finalPerimeter = setPerimeter
     #need to order perimeter such that it is manifold
     return Slice(zValue_=s.zValue, perimeter_=finalPerimeter, isSurface_=s.isSurface)
 
@@ -557,12 +558,12 @@ def main():
     supportPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
-    slices = separateSlices(triangles, layerThickness)
-    #slices = list()
-    '''
+    slices_ = separateSlices(triangles, layerThickness)
+    slices = list()
+    
     for s in slices_:
         slices += [cleanPerimeter(s)]
-    
+    '''
     for s in slices:
         for line in s.perimeter:
             print(str(s.zValue)+" "+line.toString())
