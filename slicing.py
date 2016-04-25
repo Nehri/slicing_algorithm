@@ -6,7 +6,7 @@ import string
 import copy
 
 #printer specific constants, should be suplied as args
-bedWidth = 500.0#mm
+bedWidth = 150.0#mm
 extrudeWidth = 1.0#mm
 
 class Point:
@@ -129,7 +129,7 @@ def intersectSlice(line, plane):
             testZ = line.p0.z+t*slope.z
             if testZ <= max(line.p0.z, line.p1.z) and testZ >= min(line.p0.z, line.p1.z):
                 testP = Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
-                print("intersect: "+testP.toString())
+                # print("intersect: "+testP.toString())
                 return Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
 
             else: 
@@ -280,42 +280,12 @@ def infill(perimeter,percent):
         return []
     Z = perimeter[0].p0.z #should be the same across all lines
 
-    linesPerSide = round((bedWidth*percent)/(extrudeWidth*2))
-    gap = bedWidth/linesPerSide
+    numLines = int(round((bedWidth*percent)/extrudeWidth))
+    gap = bedWidth/numLines
     infill = []
 
-    #horizontal lines
-    for y in range(int(linesPerSide)):
-        
-        #start with full line
-        fullLine = Line(Point(0,y*gap,Z),Point(bedWidth,y*gap,Z))
-        inters = []
-
-        #find intersections
-        for line in perimeter:
-            i = intersection(line,fullLine)
-            if (i != None):
-                inters.append(i)
-
-        #sort by x to get matching pairs for internal lines
-        inters.sort(key=lambda point: point.x)
-        #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
-        if len(inters) % 2 == 0:
-            print("Perimeter not manifold")
-            for line in perimeter:
-                print(line.toString())
-            print(" ")
-        for i in range(int(round(len(inters)/2))):
-            overlap = False;
-            newLine = Line(inters[i*2],inters[i*2+1])
-            for l in perimeter:
-                if lineEqual(l,newLine):
-                    overlap = True;
-            if not overlap:
-                infill.append(newLine)
-
     #vertical lines
-    for x in range(int(linesPerSide)):
+    for x in range(numLines):
         
         #start with full line
         fullLine = Line(Point(x_=x*gap,y_=0,z_=Z),Point(x_=x*gap,y_=bedWidth,z_=Z))
@@ -330,23 +300,23 @@ def infill(perimeter,percent):
         #sort by y to get matching pairs for internal lines
         inters.sort(key=lambda point: point.y)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
-        if len(inters) % 2 == 0:
+        if len(inters)%2 != 0:
             print("Perimeter not manifold\n")
             for line in perimeter:
                 print(line.toString())
             print(" ")
-        for i in range(int(round(len(inters)/2))):
-            overlap = False;
-            newLine = Line(inters[i*2],inters[i*2+1])
-            for l in perimeter:
-                if lineEqual(l,newLine):
-                    overlap = True;
-            if not overlap:
-                infill.append(newLine)
+        for i in range(len(inters)):
+            if i%2 != 0:
+                overlap = False;
+                newLine = Line(inters[i-1],inters[i])
+                for l in perimeter:
+                    if lineEqual(l,newLine):
+                        overlap = True;
+                if not overlap:
+                    infill.append(newLine)
 
-
-    for l in infill:
-        print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
+    # for l in infill:
+        # print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
 
     return infill
 
@@ -529,8 +499,9 @@ def writeGcode(slices,filename):
     f.write("G92 E0\n")
     f.write("G29\n")
 
-    layer = 1;
-    E = 0;
+    o = bedWidth/2 #origin
+    layer = 1; #current layer/slice
+    E = 0; #extrusion accumulator
     for s in slices:
 
         f.write(";Layer "+str(layer)+" of "+str(len(slices))+"\n")
@@ -544,36 +515,33 @@ def writeGcode(slices,filename):
         f.write(";perimeter\n")
         for l in s.perimeter:
             #move to start of line
-            f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
+            f.write("G0 F2700 X"+str(o+l.p0.x)+" Y"+str(o+l.p0.y)+" Z"+str(l.p0.z)+"\n")
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
             E += dist*extrudeRate
-            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+" E"+str(E)+"\n")
+            f.write("G1 F900 X"+str(o+l.p1.x)+" Y"+str(o+l.p1.y)+" E"+str(E)+"\n")
 
         if len(s.support) > 0:
             f.write(";support\n")
         for l in s.support:
             #move to start of line
-            f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
+            f.write("G0 F2700 X"+str(o+l.p0.x)+" Y"+str(o+l.p0.y)+" Z"+str(l.p0.z)+"\n")
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
             E += dist*extrudeRate
-            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+" E"+str(E)+"\n")
-
+            f.write("G1 F900 X"+str(o+l.p1.x)+" Y"+str(o+l.p1.y)+" E"+str(E)+"\n")
 
         if len(s.infill) > 0:
             f.write(";infill\n")
         for l in s.infill:
             #move to start of line
-            f.write("G0 F2700 X"+str(l.p0.x)+" Y"+str(l.p0.y)+"Z "+str(l.p0.z)+"\n")
+            f.write("G0 F2700 X"+str(o+l.p0.x)+" Y"+str(o+l.p0.y)+" Z"+str(l.p0.z)+"\n")
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
             E += dist*extrudeRate
-            f.write("G1 F900 X"+str(l.p1.x)+" Y"+str(l.p1.y)+" E"+str(E)+"\n")
-
+            f.write("G1 F900 X"+str(o+l.p1.x)+" Y"+str(o+l.p1.y)+" E"+str(E)+"\n")
         
         layer+=1
-
 
     #postamble
     f.write(";End GCode\n")
