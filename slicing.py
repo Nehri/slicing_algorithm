@@ -129,7 +129,7 @@ def intersectSlice(line, plane):
             testZ = line.p0.z+t*slope.z
             if testZ <= max(line.p0.z, line.p1.z) and testZ >= min(line.p0.z, line.p1.z):
                 testP = Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
-            return Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
+                return Point(x_=line.p0.x+t*slope.x, y_=line.p0.y+t*slope.y, z_=line.p0.z+t*slope.z)
 
             else: 
                 return None
@@ -231,7 +231,7 @@ def separateSlices(triangles, layerThickness):
                 currentSegment.append(segment2)
                 currentSegment.append(segment3)
          
-        segments.append(Slice(zValue_=s, perimeter_=currentSegment,isSurface_=currentSegmentSurface))
+        segments.append(Slice(zValue_=s, perimeter_=copy.deepcopy(currentSegment),isSurface_=currentSegmentSurface))
 
     return segments
 
