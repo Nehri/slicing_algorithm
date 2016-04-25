@@ -300,11 +300,13 @@ def infill(perimeter,percent):
         #sort by y to get matching pairs for internal lines
         inters.sort(key=lambda point: point.y)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
+        
         if len(inters)%2 != 0:
             print("Perimeter not manifold\n")
             for line in perimeter:
                 print(line.toString())
             print(" ")
+        
         for i in range(len(inters)):
             if i%2 != 0:
                 overlap = False;
@@ -337,33 +339,35 @@ def findNextPoint(point, lines):
 def cleanPerimeter(s):
     #for line in s:
         #if L is a duplicate and if every triangle containing L is on the slice, remove all L in base
+    setPerimeter = copy.deepcopy(s.perimeter)
+    
     i = 0
     while i < len(setPerimeter):
-        j = i
+        j = i+1
         while j < len(setPerimeter):
             if lineEqual(setPerimeter[i],setPerimeter[j]):
                 setPerimeter.remove(setPerimeter[j])
             else:
                 j+=1
         i+=1
-
-    pathPerimeter = list()
-    if setPerimeter:
+    
+    pathPerimeter = setPerimeter
+    '''
+    while setPerimeter:
         pathPerimeter.insert(0,setPerimeter[0])
         setPerimeter = setPerimeter[1:]
         k = 0
         while setPerimeter:
             loc = findNextPoint(pathPerimeter[k].p1, setPerimeter)
-            if not loc:
+            if loc is None:
                 break
             if pathPerimeter[k].p1.equals(setPerimeter[loc].p0):
                 pathPerimeter.insert(0,setPerimeter[loc])
             else:
                 pathPerimeter.insert(0,setPerimeter[loc].reverse())
             setPerimeter.remove(setPerimeter[loc])
-            j+=1
-
-    
+            k+=1
+    '''
     #need to order perimeter such that it is manifold
     return Slice(zValue_=s.zValue, perimeter_=pathPerimeter, isSurface_=s.isSurface)
 
@@ -562,9 +566,13 @@ def main():
 
     slices_ = separateSlices(triangles, layerThickness)
     slices = list()
+    for s in slices_:
+        slices += [cleanPerimeter(s)]
+    '''
     for s in slices:
-        slices += list(cleanPerimeter(s))
-        
+        for line in s.perimeter:
+            print(str(s.zValue)+" "+line.toString())
+    '''
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
     
