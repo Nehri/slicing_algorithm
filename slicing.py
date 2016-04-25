@@ -25,7 +25,7 @@ class Point:
     def toString(self):
         return "Point("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
     def equals(self, p2):
-        if self.x == p2.x and self.y == p2.y and self.z == p2.z:
+        if close(self.x,p2.x) and close(self.y,p2.y) and close(self.z,p2.z):
             return True
         else:
             return False
@@ -63,10 +63,10 @@ def close(f1,f2):
     return (comp > 0) and (comp < delta)
 
 def lineEqual(L1,L2):
-    if ((close(L1.p0.x, L2.p0.x) and close(L1.p0.y, L2.p0.y) and
-        close(L1.p1.x, L2.p1.x) and close(L1.p1.y, L2.p1.y))
-    or ((close(L1.p0.x, L2.p1.x) and close(L1.p0.y, L2.p1.y) and
-        close(L1.p1.x, L2.p0.x) and close(L1.p1.y, L2.p0.y)):
+    if ((close(L1.p0.x, L2.p0.x) and close(L1.p0.y, L2.p0.y)
+     and close(L1.p1.x, L2.p1.x) and close(L1.p1.y, L2.p1.y)) 
+    or (close(L1.p0.x, L2.p1.x) and close(L1.p0.y, L2.p1.y) 
+    and close(L1.p1.x, L2.p0.x) and close(L1.p1.y, L2.p0.y))):
         return True
     else:
         return False
