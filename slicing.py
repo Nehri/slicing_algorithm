@@ -58,15 +58,15 @@ class Line:
         return self
 
 #for floating point comparison
-def within(f1,f2,delta):
+def close(f1,f2):
     comp = (max(f1,f2) - min(f1,f2))
     return (comp > 0) and (comp < delta)
 
 def lineEqual(L1,L2):
-    if (((L1.p0.x == L2.p0.x) and (L1.p0.y == L2.p0.y) and
-        (L1.p1.x == L2.p1.x) and (L1.p1.y == L2.p1.y))
-    or ((L1.p0.x == L2.p1.x) and (L1.p0.y == L2.p1.y) and
-        (L1.p1.x == L2.p0.x) and (L1.p1.y == L2.p0.y))):
+    if ((close(L1.p0.x, L2.p0.x) and close(L1.p0.y, L2.p0.y) and
+        close(L1.p1.x, L2.p1.x) and close(L1.p1.y, L2.p1.y))
+    or ((close(L1.p0.x, L2.p1.x) and close(L1.p0.y, L2.p1.y) and
+        close(L1.p1.x, L2.p0.x) and close(L1.p1.y, L2.p0.y)):
         return True
     else:
         return False
@@ -274,7 +274,7 @@ def infill(perimeter,percent):
             if (sect != None):
                 new = True
                 for i in inters:
-                    if (i.y == sect.y):
+                    if close(i.y,sect.y):
                         new = False
                 if new:
                     inters.append(copy.deepcopy(sect))
