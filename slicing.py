@@ -277,7 +277,7 @@ def infill(perimeter,percent):
         #sort by y to get matching pairs for internal lines
         inters.sort(key=lambda point: point.y)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
-        
+        '''
         if len(inters)%2 != 0:
             print("Perimeter not manifold\n")
             print("fullLine: "+fullLine.toString())
@@ -287,7 +287,7 @@ def infill(perimeter,percent):
             for p in inters:
                 print(p.toString())
             print(" ")
-            
+        '''
         for i in range(len(inters)):
             if i%2 != 0:
                 overlap = False;
