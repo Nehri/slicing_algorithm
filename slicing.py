@@ -57,6 +57,11 @@ class Line:
         self.p1.z = z_
         return self
 
+#for floating point comparison
+def within(f1,f2,delta):
+    comp = (max(f1,f2) - min(f1,f2))
+    return (comp > 0) and (comp < delta)
+
 def lineEqual(L1,L2):
     if (((L1.p0.x == L2.p0.x) and (L1.p0.y == L2.p0.y) and
         (L1.p1.x == L2.p1.x) and (L1.p1.y == L2.p1.y))
