@@ -45,15 +45,16 @@ class Line:
     def toString(self):
         return "("+self.p0.toString()+","+self.p1.toString()+")"
     def reverse(self):
-        x_ = self.p0.x
-        y_ = self.p0.y
-        z_ = self.p0.z
-        self.p0.x = self.p1.x
-        self.p0.y = self.p1.y
-        self.p0.z = self.p1.z
+        x_ = copy.copy(self.p0.x)
+        y_ = copy.copy(self.p0.y)
+        z_ = copy.copy(self.p0.z)
+        self.p0.x = copy.copy(self.p1.x)
+        self.p0.y = copy.copy(self.p1.y)
+        self.p0.z = copy.copy(self.p1.z)
         self.p1.x = x_
         self.p1.y = y_
         self.p1.z = z_
+        return self
 
 def lineEqual(L1,L2):
     if (((L1.p0.x == L2.p0.x) and (L1.p0.y == L2.p0.y) and
@@ -287,7 +288,7 @@ def infill(perimeter,percent):
     for x in range(numLines):
         
         #start with full line
-        fullLine = Line(Point(x_=x*gap,y_=0,z_=Z),Point(x_=x*gap,y_=bedWidth,z_=Z))
+        fullLine = Line(Point((bedWidth/-2)+(x*gap),bedWidth/-2,Z),Point((bedWidth/-2)+(x*gap),bedWidth*2,Z))
         inters = []
 
         #find intersections
@@ -300,12 +301,15 @@ def infill(perimeter,percent):
         inters.sort(key=lambda point: point.y)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
         
-        if len(inters)%2 != 0:
-            print("Perimeter not manifold\n")
-            for line in perimeter:
-                print(line.toString())
-            print(" ")
-        
+        # if len(inters)%2 != 0:
+        #     print("Perimeter not manifold\n")
+        #     for line in perimeter:
+        #         print(line.toString())
+        #     print(" ")
+        #     for p in inters:
+        #         print(p.toString())
+        #     print(" ")
+            
         for i in range(len(inters)):
             if i%2 != 0:
                 overlap = False;
@@ -316,8 +320,10 @@ def infill(perimeter,percent):
                 if not overlap:
                     infill.append(newLine)
 
-    # for l in infill:
-        # print("("+str(l.p0.x)+","+str(l.p0.y)+"),("+str(l.p1.x)+","+str(l.p1.y)+")")
+        # if len(infill) > 0:
+        #     for l in infill:
+        #         print(l.toString())
+        #     print("")
 
     return infill
 
@@ -349,26 +355,36 @@ def cleanPerimeter(s):
             else:
                 j+=1
         i+=1
-    
-    pathPerimeter = setPerimeter
-    '''
+
+    pathPerimeter = list()
+    print("Perimetering")
+    k = 0
     while setPerimeter:
-        pathPerimeter.insert(0,setPerimeter[0])
+        pathPerimeter.insert(0,copy.deepcopy(setPerimeter[0]))
         setPerimeter = setPerimeter[1:]
-        k = 0
         while setPerimeter:
+            print(len(pathPerimeter))
             loc = findNextPoint(pathPerimeter[k].p1, setPerimeter)
             if loc is None:
+                #print(pathPerimeter[k].p1.toString())
+                #for line in setPerimeter:
+                #    print(line.toString())
+                k+=1
                 break
             if pathPerimeter[k].p1.equals(setPerimeter[loc].p0):
-                pathPerimeter.insert(0,setPerimeter[loc])
+                pathPerimeter.insert(0,copy.deepcopy(setPerimeter[loc]))
             else:
-                pathPerimeter.insert(0,setPerimeter[loc].reverse())
+                pathPerimeter.insert(0,copy.deepcopy(setPerimeter[loc].reverse()))
             setPerimeter.remove(setPerimeter[loc])
             k+=1
-    '''
+    
+    for line in pathPerimeter:
+        if line.p0.equals(line.p1):
+            pathPerimeter.remove(line)
+    finalPerimeter = [value for value in pathPerimeter if value != None]
+
     #need to order perimeter such that it is manifold
-    return Slice(zValue_=s.zValue, perimeter_=pathPerimeter, isSurface_=s.isSurface)
+    return Slice(zValue_=s.zValue, perimeter_=finalPerimeter, isSurface_=s.isSurface)
 
 
 # pseudocode for computing brim of a single convex polyhedron base
@@ -563,11 +579,12 @@ def main():
     supportPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
-    slices_ = separateSlices(triangles, layerThickness)
-    slices = list()
+    slices = separateSlices(triangles, layerThickness)
+    #slices = list()
+    '''
     for s in slices_:
         slices += [cleanPerimeter(s)]
-    '''
+    
     for s in slices:
         for line in s.perimeter:
             print(str(s.zValue)+" "+line.toString())
