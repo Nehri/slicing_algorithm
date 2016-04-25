@@ -135,42 +135,6 @@ def intersectSlice(line, plane):
                 return None
         else:
             return None
-         
-# given two lines on the same z plane,
-# returns the point at which they intersect,
-# or None if there is no intersection
-def intersection(L1,L2):
-
-    #make sure all lines are on the same z plane
-    assert (L1.p0.z == L1.p1.z)
-    assert (L2.p0.z == L2.p1.z)
-    assert (L1.p0.z == L2.p0.z)
-
-    x1 = L1.p0.x
-    y1 = L1.p0.y
-    x2 = L1.p1.x
-    y2 = L1.p1.y
-    x3 = L2.p0.x
-    y3 = L2.p0.y
-    x4 = L2.p1.x
-    y4 = L2.p1.y
-
-    xnum = (x1*y2-y1*x2)*(x3-x4) - (x1-x2)*(x3*y4-y3*x4)
-    xden = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
-    ynum = (x1*y2-y1*x2)*(y3-y4) - (y1-y2)*(x3*y4-y3*x4)
-    yden = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
-
-    try:
-        i = Point(xnum/xden,ynum/yden,L1.p0.z)
-        if ((i.x <= max(x1,x2)) and (i.x >= min(x1,x2)) and
-            (i.y <= max(y1,y2)) and (i.y >= min(y1,y2)) and
-            (i.x <= max(x3,x4)) and (i.x >= min(x3,x4)) and
-            (i.y <= max(y3,y4)) and (i.y >= min(y3,y4)) ):
-            return i
-        else:
-            return None
-    except:
-        return None
 
 # given a list of triangles in 3D space,
 # returns a tuple of the highest and lowest Z values
