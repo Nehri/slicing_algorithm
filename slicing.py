@@ -257,7 +257,7 @@ def infill(perimeter,percent):
     for x in range(numLines):
         
         #start with full line
-        fullLine = Line(Point((bedWidth/-2)+(x*gap),bedWidth/-2,Z),Point((bedWidth/-2)+(x*gap),bedWidth*2,Z))
+        fullLine = Line(Point((bedWidth/-2.0)+(x*gap),bedWidth/-2.0,Z),Point((bedWidth/-2.0)+(x*gap),bedWidth*2.0,Z))
         inters = []
 
         #find intersections without repeats
@@ -269,7 +269,7 @@ def infill(perimeter,percent):
                     if (i.y == sect.y):
                         new = False
                 if new:
-                    inters.append(sect)
+                    inters.append(copy.deepcopy(sect))
 
         #sort by y to get matching pairs for internal lines
         inters.sort(key=lambda point: point.y)
