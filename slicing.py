@@ -22,7 +22,7 @@ class Point:
         return math.sqrt(self.x**2 + self.y**2 + self.z**2)
 
     def toString(self):
-        return "("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
+        return "Point("+str(self.x)+","+str(self.y)+","+str(self.z)+")"
     def equals(self, p2):
         if self.x == p2.x and self.y == p2.y and self.z == p2.z:
             return True
@@ -43,7 +43,7 @@ class Line:
         self.p1 = p1_
 
     def toString(self):
-        return "("+self.p0.toString()+","+self.p1.toString()+")"
+        return "Line("+self.p0.toString()+","+self.p1.toString()+")"
     def reverse(self):
         x_ = copy.copy(self.p0.x)
         y_ = copy.copy(self.p0.y)
@@ -226,13 +226,15 @@ def intersection(L1,L2):
     try:
         intersect = Point(xnum/xden,ynum/yden,L1.p0.z) 
 
-        if ((intersect.x >= min(x1,x2)) and (intersect.x <= max(x1,x2)) and
-            (intersect.y >= min(y1,y2)) and (intersect.y <= max(y1,y2)) and
-            (intersect.x >= min(x3,x4)) and (intersect.x <= max(x3,x4)) and
-            (intersect.y >= min(y3,y4)) and (intersect.y <= max(y3,y4))):
+        d = 0.01 #delta for floating point comparison
+        if ((intersect.x >= min(x1,x2)-d) and (intersect.x <= max(x1,x2)+d) and
+            (intersect.y >= min(y1,y2)-d) and (intersect.y <= max(y1,y2)+d) and
+            (intersect.x >= min(x3,x4)-d) and (intersect.x <= max(x3,x4)+d) and
+            (intersect.y >= min(y3,y4)-d) and (intersect.y <= max(y3,y4)+d)):
             return intersect
         else:
             return None
+        # return intersect
     except:
         return None
 
@@ -257,7 +259,8 @@ def infill(perimeter,percent):
     for x in range(numLines):
         
         #start with full line
-        fullLine = Line(Point((bedWidth/-2.0)+(x*gap),bedWidth/-2.0,Z),Point((bedWidth/-2.0)+(x*gap),bedWidth*2.0,Z))
+
+        fullLine = Line(Point((bedWidth/-2)+(x*gap),bedWidth/-2,Z),Point((bedWidth/-2)+(x*gap),bedWidth/2,Z))
         inters = []
 
         #find intersections without repeats
@@ -275,14 +278,15 @@ def infill(perimeter,percent):
         inters.sort(key=lambda point: point.y)
         #assert(len(inters)%2 == 0) #if not even, then perimeter was not manifold
         
-        # if len(inters)%2 != 0:
-        #     print("Perimeter not manifold\n")
-        #     for line in perimeter:
-        #         print(line.toString())
-        #     print(" ")
-        #     for p in inters:
-        #         print(p.toString())
-        #     print(" ")
+        if len(inters)%2 != 0:
+            print("Perimeter not manifold\n")
+            print("fullLine: "+fullLine.toString())
+            for line in perimeter:
+                print(line.toString())
+            print(" ")
+            for p in inters:
+                print(p.toString())
+            print(" ")
             
         for i in range(len(inters)):
             if i%2 != 0:
@@ -563,6 +567,8 @@ def main():
         s.infill = infill(s.perimeter, supportPercent)
     
     writeGcode(slices,filename)
+
+
     
 
 if __name__ == "__main__":
