@@ -1,10 +1,10 @@
-## Slicer
+# Slicer
 This python script slices 3D models from STL files to produce gcode with infill and supports.
 
-# Credits
-This algorithm was written by Aaron Schaer and Michelle Ross, with help from Steven Hernandez, for Digital Fabrication.
+## Credits
+This algorithm was written by Aaron Schaer and Michelle Ross in collaboration with Steven Hernandez for Digital Fabrication.
 
-# Usage
+## Usage
 Our script takes exactly three inputs:
 1. Name of STL file to slice
 2. The desired thickness of each layer in millimeters
@@ -13,6 +13,6 @@ Our script takes exactly three inputs:
 Our script runs best on Python 2.7.
 
 Example usage:
+
 `python slicing.py cube.stl 0.08 0.2`
 
-# 
