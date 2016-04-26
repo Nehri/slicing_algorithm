@@ -117,7 +117,7 @@ def fileToTriangles(filename):
             points = points[4:]
 
         return triangles
-         
+
 # given a line segment and a plane,
 # returns the point at which those two
 # planes intersect. Will return the first point
@@ -142,6 +142,26 @@ def intersectSlice(line, plane):
         else:
             return None
 
+#helper for aboveTriangle
+def sign(p0,p1,p2):
+    return (p0.x-p2.x)*(p1.y-p2.y) - (p1.x-p2.x)*(p0.y-p2.y)
+
+#given a point and a triangle, 
+#returns true if that point is directly above that triangle,
+#false otherwise
+def aboveTriangle(point,triangle):
+    if  point.z > (triangle.p0.z-delta) and
+        point.z > (triangle.p1.z-delta) and
+        point.z > (triangle.p2.z-delta):
+
+        b1 = (sign(pt, triangle.p0, triangle.p1) < 0.0)
+        b2 = (sign(pt, triangle.p1, triangle.p2) < 0.0)
+        b3 = (sign(pt, triangle.p2, triangle.p0) < 0.0)
+        return ((b1 == b2) and (b2 == b3))
+
+    else:
+        return False
+        
 # given a list of triangles in 3D space,
 # returns a tuple of the highest and lowest Z values
 def findBoundaries(triangles):
