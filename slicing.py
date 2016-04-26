@@ -66,7 +66,7 @@ def lineEqual(L1,L2):
     if ((close(L1.p0.x, L2.p0.x) and close(L1.p0.y, L2.p0.y)
      and close(L1.p1.x, L2.p1.x) and close(L1.p1.y, L2.p1.y)) 
     or (close(L1.p0.x, L2.p1.x) and close(L1.p0.y, L2.p1.y) 
-    and close(L1.p1.x, L2.p0.x) and close(L1.p1.y, L2.p0.y))):
+     and close(L1.p1.x, L2.p0.x) and close(L1.p1.y, L2.p0.y))):
         return True
     else:
         return False
@@ -141,6 +141,7 @@ def intersectSlice(line, plane):
                 return None
         else:
             return None
+
 
 # given a list of triangles in 3D space,
 # returns a tuple of the highest and lowest Z values
@@ -480,6 +481,48 @@ def raft(slices, numLayers, offset, infill, layerThickness):
         z += layerThickness
     return allSegments
 
+# given a list of triangles,
+# returns a list of any downward-facing triangles
+def downward(triangles):
+    trianglesDown = list()
+    for triangle in triangles:
+        if triangle.norm.z < 0:
+            trianglesDown.insert(0, copy.deepcopy(triangle))
+    return trianglesDown
+
+# given a downward-facing triangle and a list of all triangles,
+# returns True if no triangles are in the way of the downward triangle
+# and False if a triangle blocks the path directly downward
+def supportNeeded(triangle, triangles):
+    if (not above(triangle.p0, triangles) 
+        and not above(triangle.p1, triangles) 
+        and not above(triangle.p2, triangles)):
+        return True
+    else:
+        return False
+
+
+# given a triangle that requires support and a minimum Z value,
+# returns the list of triangles required to form the support shape under that triangle
+def generateSupportShape(triangle, bottomZ):
+    triangleTop = copy.deepcopy(triangle)
+    triangleBottom = Triangle(Point(triangleTop.p0.x, triangleTop.p0.y, bottomZ), 
+                                Point(triangleTop.p1.x, triangleTop.p1.y, bottomZ), 
+                                Point(triangleTop.p2.x, triangleTop.p2.y, bottomZ))
+    newShape = list(triangleTop)
+    newShape.insert(0, triangleBottom)
+
+    newShape.insert(0, Triangle(triangleTop.p0, triangleTop.p2, triangleBottom.p2))
+    newShape.insert(0, Triangle(triangleTop.p0, triangleBottom.p2, triangleBottom.p1))
+
+    newShape.insert(0, Triangle(triangleTop.p1, triangleTop.p0, triangleBottom.p2))
+    newShape.insert(0, Triangle(triangleTop.p0, triangleBottom.p1, triangleBottom.p0))
+
+    newShape.insert(0, Triangle(triangleTop.p1, triangleTop.p2, triangleBottom.p1))
+    newShape.insert(0, Triangle(triangleTop.p2, triangleBottom.p1, triangleBottom.p2))
+
+    return newShape
+
 
 # given a list of slices with the list of line segments
 # to draw per slice, as a tuple with if the slice is a
@@ -558,11 +601,19 @@ def main():
     supportPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
+    '''
+    trianglesDown = downward(triangles)
+    trianglesForSupport = list()
+    for tri in trianglesDown:
+        if supportNeeded(tri, triangles):
+            trianglesForSupport.insert(0,copy.deepcopy(tri))
+    '''
     slices_ = separateSlices(triangles, layerThickness)
     slices = list()
     
     for s in slices_:
         slices += [cleanPerimeter(s)]
+
     '''
     for s in slices:
         for line in s.perimeter:
