@@ -524,13 +524,17 @@ def downward(triangles):
 # given a downward-facing triangle and a list of all triangles,
 # returns True if no triangles are in the way of the downward triangle
 # and False if a triangle blocks the path directly downward
-def supportNeeded(triangle, triangles):
+def supportNeeded(triangle, triangles, bottomZ):
     for tri in triangles:
         if (aboveTriangle(triangle.p0, tri) 
             or aboveTriangle(triangle.p1, tri) 
             or aboveTriangle(triangle.p2, tri)):
             return False
-        
+
+    if (close(triangle.p0.z, bottomZ)
+        and close(triangle.p1.z, bottomZ)
+        and close(triangle.p2.z, bottomZ)):
+        return False
     return True
 
 
@@ -574,7 +578,7 @@ def generateSupports(triangles, layerThickness):
     trianglesDown = downward(triangles)
     trianglesForSupport = list()
     for tri in trianglesDown:
-        if supportNeeded(tri, triangles):
+        if supportNeeded(tri, triangles, bounds[0]):
             trianglesForSupport.insert(0,copy.deepcopy(tri))
 
     supportShapes = list()
