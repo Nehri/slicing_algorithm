@@ -8,6 +8,7 @@ import copy
 #printer specific constants, should be suplied as args
 bedWidth = 150.0#mm
 extrudeWidth = 1.0#mm
+supportInfill = .1
 delta = extrudeWidth/100.0 #delta for floating point comparison
 
 class Point:
@@ -569,6 +570,7 @@ def generateSupportShape(triangle, bottomZ):
 
 # given a list of triangles
 # returns a list of list of slices to draw supports for any downward-facing triangles
+#returns a list of slices
 def generateSupports(triangles, layerThickness):
 
     bounds = findBoundaries(triangles)
@@ -582,7 +584,6 @@ def generateSupports(triangles, layerThickness):
     supportShapes = list()
     for triangle in trianglesForSupport:
         supportShapes.insert(0, generateSupportShape(triangle, bounds[0]))
-
 
     supportSlices = list()
     for shape in supportShapes:
@@ -672,31 +673,20 @@ def main():
     supportPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
-    supportSlices = generateSupports(triangles, layerThickness)
     slices_ = separateSlices(triangles, layerThickness)
+    supportSlices = generateSupports(triangles, layerThickness)
     slices = list()
-    
-    for s in supportSlices:
-        for line in s.perimeter:
-            if s.zValue < 3:
-                print(str(s.zValue)+" "+line.toString())
-    
+
     for s in slices_:
         slices += [cleanPerimeter(s)]
 
-    '''
-    for s in slices:
-        for line in s.perimeter:
-            print(str(s.zValue)+" "+line.toString())
-    '''
-
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
-    
+
+    for s in range(len(supportSlices)):
+        slices[s].support = infill(supportSlices[s].perimeter,supportInfill)
+
     writeGcode(slices,filename)
-
-
-    
 
 if __name__ == "__main__":
     main()
