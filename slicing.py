@@ -8,7 +8,7 @@ import copy
 #printer specific constants, should be suplied as args
 bedWidth = 150.0#mm
 extrudeWidth = 1.0#mm
-supportInfill = .1
+supportInfill = .5
 delta = extrudeWidth/100.0 #delta for floating point comparison
 
 class Point:
@@ -525,16 +525,17 @@ def downward(triangles):
 # returns True if no triangles are in the way of the downward triangle
 # and False if a triangle blocks the path directly downward
 def supportNeeded(triangle, triangles, bottomZ):
-    for tri in triangles:
-        if (aboveTriangle(triangle.p0, tri) 
-            or aboveTriangle(triangle.p1, tri) 
-            or aboveTriangle(triangle.p2, tri)):
-            return False
-
     if (close(triangle.p0.z, bottomZ)
         and close(triangle.p1.z, bottomZ)
         and close(triangle.p2.z, bottomZ)):
         return False
+
+    # for tri in triangles:
+    #     if (aboveTriangle(triangle.p0, tri) 
+    #         or aboveTriangle(triangle.p1, tri) 
+    #         or aboveTriangle(triangle.p2, tri)):
+    #         return False
+
     return True
 
 
@@ -548,14 +549,12 @@ def generateSupportShape(triangle, bottomZ):
     newShape = [triangleTop]
     newShape.insert(0, triangleBottom)
 
-    newShape.insert(0, Triangle(triangleTop.p0, triangleTop.p2, triangleBottom.p2, None))
-    newShape.insert(0, Triangle(triangleTop.p0, triangleBottom.p2, triangleBottom.p1, None))
-
-    newShape.insert(0, Triangle(triangleTop.p1, triangleTop.p0, triangleBottom.p2, None))
-    newShape.insert(0, Triangle(triangleTop.p0, triangleBottom.p1, triangleBottom.p0, None))
-
+    newShape.insert(0, Triangle(triangleTop.p0, triangleTop.p1, triangleBottom.p0, None))
     newShape.insert(0, Triangle(triangleTop.p1, triangleTop.p2, triangleBottom.p1, None))
-    newShape.insert(0, Triangle(triangleTop.p2, triangleBottom.p1, triangleBottom.p2, None))
+    newShape.insert(0, Triangle(triangleTop.p2, triangleTop.p0, triangleBottom.p2, None))
+    newShape.insert(0, Triangle(triangleBottom.p0, triangleBottom.p1, triangleTop.p1, None))
+    newShape.insert(0, Triangle(triangleBottom.p1, triangleBottom.p2, triangleTop.p2, None))
+    newShape.insert(0, Triangle(triangleBottom.p2, triangleBottom.p0, triangleTop.p0, None))
 
     i = 0
     while i < len(newShape):
@@ -576,10 +575,12 @@ def generateSupports(triangles, layerThickness):
     bounds = findBoundaries(triangles)
 
     trianglesDown = downward(triangles)
+    print len(trianglesDown)
     trianglesForSupport = list()
     for tri in trianglesDown:
         if supportNeeded(tri, triangles, bounds[0]):
             trianglesForSupport.insert(0,copy.deepcopy(tri))
+    print len(trianglesForSupport)
 
     supportShapes = list()
     for triangle in trianglesForSupport:
@@ -642,7 +643,7 @@ def writeGcode(slices,filename):
             #move to end while extruding
             dist = math.sqrt(pow(l.p1.x-l.p0.x,2) + pow(l.p1.y-l.p0.y,2))
             E += dist*extrudeRate
-            f.write("G1 F900 X"+str(o+l.p1.x)+" Y"+str(o+l.p1.y)+" E"+str(E)+"\n")
+            f.write("G1 F800 X"+str(o+l.p1.x)+" Y"+str(o+l.p1.y)+" E"+str(E)+"\n")
 
         if len(s.infill) > 0:
             f.write(";infill\n")
@@ -675,6 +676,11 @@ def main():
 
     slices_ = separateSlices(triangles, layerThickness)
     supportSlices = generateSupports(triangles, layerThickness)
+
+    # for s in supportSlices:
+    #     for line in s.support:
+    #         print s.zValue, line.toString()
+
     slices = list()
 
     for s in slices_:
@@ -683,8 +689,12 @@ def main():
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
 
-    for s in range(len(supportSlices)):
+    for s in range(len(slices)):
         slices[s].support = infill(supportSlices[s].perimeter,supportInfill)
+
+    # for s in slices:
+    #     for line in s.support:
+    #         print s.zValue, line.toString()
 
     writeGcode(slices,filename)
 
