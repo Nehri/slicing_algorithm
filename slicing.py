@@ -78,6 +78,8 @@ class Triangle:
         self.p1 = p1_
         self.p2 = p2_
         self.norm = norm_
+    def toString(self):
+        return "Triangle("+self.p0.toString()+","+self.p1.toString()+","+self.p2.toString()+")"
 
 def triangleEqual(T1,T2):
     if ((T1.p0.equals(T2.p0) and T1.p1.equals(T2.p1) and T1.p2.equals(T2.p2))
@@ -211,12 +213,24 @@ def separateSlices(triangles, layerThickness):
             point2 = intersectSlice(Line(p0_=triangle.p1, p1_=triangle.p2), s)
             point3 = intersectSlice(Line(p0_=triangle.p2, p1_=triangle.p0), s)
 
-            points = list(set([point1, point2, point3]))
+            points_ = list(set([point1, point2, point3]))
+            points = list()
 
-            for point in points:
+            for point in points_:
                 if point == None:
-                    points.remove(None)
+                    points_.remove(None)
                     break
+            
+            for i in range(0,len(points_)):
+                j = i+1
+                unique = True
+                while j < len(points_):
+                    if points_[i].equals(points_[j]):
+                        unique = False
+                    j+=1
+                if unique:
+                    points.insert(0,copy.deepcopy(points_[i]))
+
             if s <= (bounds[0]+layerThickness) or s >= (bounds[1]-layerThickness):
                 currentSegmentSurface = True
 
@@ -235,7 +249,10 @@ def separateSlices(triangles, layerThickness):
                 currentSegment.append(segment3)
          
         segments.append(Slice(zValue_=s, perimeter_=copy.deepcopy(currentSegment),isSurface_=currentSegmentSurface))
-
+        '''
+        for line in currentSegment:
+            print("appended "+line.toString())
+        '''
     return segments
 
 # given two lines on the same z plane, 
@@ -314,6 +331,7 @@ def infill(perimeter,percent):
 
         #sort by y to get matching pairs for internal lines
         inters.sort(key=lambda point: point.y)
+        
         if len(inters)%2 == 0: #if not even then something went wrong and its safer not to print
             for i in range(len(inters)):
                 if i%2 != 0:
@@ -565,37 +583,45 @@ def generateSupportShape(triangle, bottomZ):
             else:
                 j+=1
         i+=1
+
     return newShape
 
 # given a list of triangles
 # returns a list of list of slices to draw supports for any downward-facing triangles
-#returns a list of slices
+#returns a list of lists of slices
 def generateSupports(triangles, layerThickness):
 
     bounds = findBoundaries(triangles)
 
     trianglesDown = downward(triangles)
-    print len(trianglesDown)
+
     trianglesForSupport = list()
     for tri in trianglesDown:
         if supportNeeded(tri, triangles, bounds[0]):
             trianglesForSupport.insert(0,copy.deepcopy(tri))
-    print len(trianglesForSupport)
 
     supportShapes = list()
     for triangle in trianglesForSupport:
         supportShapes.insert(0, generateSupportShape(triangle, bounds[0]))
 
     supportSlices = list()
+    '''
+    print(len(supportShapes))
     for shape in supportShapes:
         supportSlices.insert(0, separateSlices(shape, layerThickness))
+        print("finished shape")
+        for line in supportSlices[0][0].perimeter:
+            print(line.toString())
+    '''
+    #GOOD TO HERE
 
     cleanedSupportSlices = list()
     for supp in supportSlices:
         for s in supp:
-            cleanedSupportSlices += [cleanPerimeter(s)]
+            cleanedSupportSlices += [s]
+            #cleanedSupportSlices += [cleanPerimeter(s)]
 
-    return cleanedSupportSlices
+    return supportSlices
 
 # given a list of slices with the list of line segments
 # to draw per slice, as a tuple with if the slice is a
@@ -677,10 +703,6 @@ def main():
     slices_ = separateSlices(triangles, layerThickness)
     supportSlices = generateSupports(triangles, layerThickness)
 
-    # for s in supportSlices:
-    #     for line in s.support:
-    #         print s.zValue, line.toString()
-
     slices = list()
 
     for s in slices_:
@@ -689,8 +711,12 @@ def main():
     for s in slices:
         s.infill = infill(s.perimeter, supportPercent)
 
-    for s in range(len(slices)):
-        slices[s].support = infill(supportSlices[s].perimeter,supportInfill)
+    for shape in supportSlices:
+        for s in range(len(shape)):
+            slices[s].support += infill(shape[s].perimeter,supportInfill)
+
+    # for s in range(len(slices)):
+    #     slices[s].support = infill(supportSlices[s].perimeter,supportInfill)
 
     # for s in slices:
     #     for line in s.support:
