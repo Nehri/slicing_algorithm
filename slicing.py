@@ -384,7 +384,9 @@ def cleanPerimeter(s):
             else:
                 j+=1
         i+=1
-    '''
+
+
+    '''    
     pathPerimeter = list()
     print("Perimetering")
     k = 0
@@ -411,7 +413,9 @@ def cleanPerimeter(s):
         if line.p0.equals(line.p1):
             pathPerimeter.remove(line)
     finalPerimeter = [value for value in pathPerimeter if value != None]
+    
     '''
+
     finalPerimeter = setPerimeter
     #need to order perimeter such that it is manifold
     return Slice(zValue_=s.zValue, perimeter_=finalPerimeter, isSurface_=s.isSurface)
