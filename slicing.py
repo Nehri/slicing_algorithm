@@ -7,7 +7,7 @@ import copy
 
 #printer specific constants, should be suplied as args
 bedWidth = 150.0#mm
-extrudeWidth = 1.0#mm
+extrudeWidth = 0.71#mm
 supportInfill = .5
 delta = extrudeWidth/100.0 #delta for floating point comparison
 
@@ -169,10 +169,11 @@ def aboveTriangle(point,triangle):
         point.z > (triangle.p1.z-delta) and
         point.z > (triangle.p2.z-delta)):
 
-        b1 = (sign(point, triangle.p0, triangle.p1) < 0.0)
-        b2 = (sign(point, triangle.p1, triangle.p2) < 0.0)
-        b3 = (sign(point, triangle.p2, triangle.p0) < 0.0)
-        return ((b1 == b2) and (b2 == b3))
+        #b1 = (sign(point, triangle.p0, triangle.p1) < 0.0)
+        #b2 = (sign(point, triangle.p1, triangle.p2) < 0.0)
+        #b3 = (sign(point, triangle.p2, triangle.p0) < 0.0)
+        #return ((b1 == b2) and (b2 == b3))
+        return True
 
     else:
         return False
@@ -605,21 +606,9 @@ def generateSupports(triangles, layerThickness):
         supportShapes.insert(0, generateSupportShape(triangle, bounds[0]))
 
     supportSlices = list()
-    '''
-    print(len(supportShapes))
+
     for shape in supportShapes:
         supportSlices.insert(0, separateSlices(shape, layerThickness))
-        print("finished shape")
-        for line in supportSlices[0][0].perimeter:
-            print(line.toString())
-    '''
-    #GOOD TO HERE
-
-    cleanedSupportSlices = list()
-    for supp in supportSlices:
-        for s in supp:
-            cleanedSupportSlices += [s]
-            #cleanedSupportSlices += [cleanPerimeter(s)]
 
     return supportSlices
 
@@ -709,18 +698,14 @@ def main():
         slices += [cleanPerimeter(s)]
 
     for s in slices:
-        s.infill = infill(s.perimeter, supportPercent)
+        if s.isSurface:
+            s.infill = infill(s.perimeter, 1)
+        else:
+            s.infill = infill(s.perimeter, supportPercent)
 
     for shape in supportSlices:
         for s in range(len(shape)):
             slices[s].support += infill(shape[s].perimeter,supportInfill)
-
-    # for s in range(len(slices)):
-    #     slices[s].support = infill(supportSlices[s].perimeter,supportInfill)
-
-    # for s in slices:
-    #     for line in s.support:
-    #         print s.zValue, line.toString()
 
     writeGcode(slices,filename)
 
