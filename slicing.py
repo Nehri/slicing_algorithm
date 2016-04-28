@@ -158,8 +158,8 @@ def intersectSlice(line, plane):
 
 
 #helper for aboveTriangle
-def sign(p0,p1,p2):
-    return (p0.x-p2.x)*(p1.y-p2.y) - (p1.x-p2.x)*(p0.y-p2.y)
+def sign(p1, p2, p3):
+    return (p1.x-p3.x)*(p2.y-p3.y) - (p2.x-p3.x)*(p1.y-p3.y)
 
 # given a point and a triangle, 
 # returns True if that point is directly above that triangle,
@@ -169,11 +169,11 @@ def aboveTriangle(point,triangle):
         point.z > (triangle.p1.z-delta) and
         point.z > (triangle.p2.z-delta)):
 
-        #b1 = (sign(point, triangle.p0, triangle.p1) < 0.0)
-        #b2 = (sign(point, triangle.p1, triangle.p2) < 0.0)
-        #b3 = (sign(point, triangle.p2, triangle.p0) < 0.0)
-        #return ((b1 == b2) and (b2 == b3))
-        return True
+        b1 = (sign(point, triangle.p0, triangle.p1) < 0.0)
+        b2 = (sign(point, triangle.p1, triangle.p2) < 0.0)
+        b3 = (sign(point, triangle.p2, triangle.p0) < 0.0)
+        ret = ((b1 == b2) and (b2 == b3))
+        return ret
 
     else:
         return False
@@ -553,11 +553,11 @@ def supportNeeded(triangle, triangles, bottomZ):
         and close(triangle.p2.z, bottomZ)):
         return False
 
-    # for tri in triangles:
-    #     if (aboveTriangle(triangle.p0, tri) 
-    #         or aboveTriangle(triangle.p1, tri) 
-    #         or aboveTriangle(triangle.p2, tri)):
-    #         return False
+    for tri in triangles:
+        if (aboveTriangle(triangle.p0, tri) 
+            or aboveTriangle(triangle.p1, tri) 
+            or aboveTriangle(triangle.p2, tri)):
+            return False
 
     return True
 
@@ -715,6 +715,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
