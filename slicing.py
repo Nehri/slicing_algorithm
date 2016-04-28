@@ -690,7 +690,7 @@ def writeGcode(slices,filename):
 def main():
     filename = sys.argv[1]
     layerThickness = float(sys.argv[2])
-    supportPercent = float(sys.argv[3])
+    infillPercent = float(sys.argv[3])
     triangles = fileToTriangles(filename)
 
     slices_ = separateSlices(triangles, layerThickness)
@@ -705,7 +705,7 @@ def main():
         if s.isSurface:
             s.infill = infill(s.perimeter, 1)
         else:
-            s.infill = infill(s.perimeter, supportPercent)
+            s.infill = infill(s.perimeter, infillPercent)
 
     for shape in supportSlices:
         for s in range(len(shape)):
